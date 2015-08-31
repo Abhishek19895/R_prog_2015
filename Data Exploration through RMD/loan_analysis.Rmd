@@ -1,0 +1,381 @@
+
+---
+title: "Understanding the *factors* associated with **Loans at Prosper Marketplace**"
+output:
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_depth: 2
+  pdf_document:
+    highlight: zenburn
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_depth: 2
+---
+
+# Prosper Dataset: *Top Down*
+In this exersize, we deal with a dataset from
+[Prosper](https://en.wikipedia.org/wiki/Prosper_Marketplace)
+
+ProsperLoans dataset contains peer to peer low-medium sized loan transactions. Current dataset has over .11 million transactions, consisting schemas related to buyers, seller & the loan.
+To understand the sructure of the data and criticality of each variable we do an Exploratory data analysis (EDA) on the structure of the data."
+
+> EDA of the above, shall benefit us in a number of ways:
+
+1. Tracking collinearty & multi-collinearity
+
+2. Tracking hidden relationships
+
+3. Checking for outliers & imputation of missing values 
+
+We will also share the graphical represntation of some of the factors discussed. This is because, Data visualization is a pivotal part of data analysis. The below link explains the need:
+[Anscombe Quartlet](https://en.wikipedia.org/wiki/Anscombe%27s_quartet) 
+
+************
+
+#  Analyzing *schemas* of the dataset
+
+Number of factors in the dataset
+```{r,  echo  =  FALSE,  tidy  =  TRUE}
+#Accepting Loan Analysis data
+mydata  <-  read.csv("ProsperLoanData.csv",  header  =  TRUE)
+ncol(mydata)
+```
+
+
+```{r,  echo  =  FALSE}
+library(ggplot2)
+# i have used the below url for this
+# "http://rstudio-pubs-static.s3.amazonaws.com/3364_d1a578f521174152b46b19d0c83cbe7e.html"
+#For table headings
+brown.bold.italic.text  <-  element_text(face  =  "bold.italic"
+                                         ,  color  =  "brown")
+```
+
+
+Some important variables around which our EDA revolves:
+
+1.  Credit scores
+
+2.  Delinquency Accounts
+
+3.  Credit Accounts
+
+4.  Borrower's income
+
+5.  Investors
+
+6.  Estimated Lossed
+
+7.  Estimated Fees
+
+8.  Lender Yields
+
+
+
+*************
+
+##   Does More friends mean More Investments from them?
+```
+We take 2 variables here:-
+
+1.  InvestmentFromFriendsAmount
+2.  InvestmentFromFriendsCount
+
+with the intuition that more friends will bring more investments.
+```
+```{r,  echo  =  FALSE}
+#Taking the variables "InvestmentFromFriendsAmount" 
+# & "InvestmentFromFriendsCount"
+friends  <-  mydata[,c("InvestmentFromFriendsAmount","InvestmentFromFriendsCount")]
+#analyzing the variables- we get Large Tails in the right
+i1  <-  fivenum(mydata$InvestmentFromFriendsAmount)
+i2  <-  fivenum(mydata$InvestmentFromFriendsCount)
+friends  <- na.omit(friends)
+#Picking subscribers >0 friends & Investment
+friends  <- subset(friends,   (InvestmentFromFriendsAmount  >  0  
+                               &  InvestmentFromFriendsCount  >  0))
+#Splitting the variables
+investment  <-  as.vector(friends$InvestmentFromFriendsAmount)
+friends.count  <-  as.vector(friends$InvestmentFromFriendsCount)
+cor.friends  <-  cor(investment,  friends.count)
+#checking z-value for Pearson's correlation to test its validity at 95% CI
+cor.1  <-  cor.test(investment,  friends.count,  method  =  "kendall",  conf.level  =  .95)
+#Plotting the finding
+p1  <-  ggplot(friends,  aes(y  =  investment,  x  =  friends.count,
+                             colour   =   friends.count))
+p1  <-  p1  +  geom_line(size  =  1)  +  scale_colour_gradient(low  =  "red")
+p1  <-  p1  +  xlab("Number of friends")  +  ylab("Investment by friends")
+p1  <-  p1  +  ggtitle("Yes! \n More friends means More money") + 
+     theme(plot.title  =  element_text(lineheight  =  1.8, face  =  "bold"))
+p1  <-  p1  +  theme(panel.background  =  element_rect(fill  =  "lightblue"))
+p1  <-  p1  +  stat_smooth(method  =  "glm",   fill  =  "blue"
+                ,  colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p1  <-  p1  +  theme(aspect.ratio  =  1)
+p1  <-  p1  +  theme(title = brown.bold.italic.text, axis.title = brown.bold.italic.text)
+p1  <-  p1  +  annotate("text",  x  =  10,  y  =  15000,  color  =  "Dark Green"
+               ,  label  =  "Smoothed line (Dark Blue)",  size  =  3)
+p1
+```
+
+*************
+
+##   Does Debt/Income correlates positively with Borrower rate?
+```
+We take 2 variables here:-
+
+1.  BorrowerRate
+2.  DebtToIncomeRatio
+
+with the notion that borrowers with higher levels of existent debt relative 
+to their income, shall get new loans at higher costs.
+```
+
+```{r,  echo  =  FALSE}
+#Taking the variables "BorrowerRate" & "DebtToIncomeRatio"
+debt  <-  mydata[,c("BorrowerRate","DebtToIncomeRatio")]
+#Getting rid of NA entries to support convergence
+debt  <-  na.omit(debt)
+#Picking entries >0 bebt.rate & Debt/Income ratio
+debt  <-  subset(debt,   (debt$BorrowerRate  >  0  
+                               &  debt$DebtToIncomeRatio  >  0))
+#Checking the spread of both variables
+i3  <-  fivenum(debt$BorrowerRate, na.rm  =  TRUE)
+i3  <-  fivenum(debt$DebtToIncomeRatio, na.rm  =  TRUE)
+debt.to.income  <-  as.vector(debt$DebtToIncomeRatio)
+debt.rate  <-  as.vector(debt$BorrowerRate)
+#checking z-value for Pearson's correlation to test its validity at 95% CI
+cor.debt  <-  cor(debt.to.income,  debt.rate)
+```
+Correlation between Debt/Income and Borrower rate is
+
+0.06286032
+
+Nothing significant from this data could be concluded
+about the dependence of (Debt/Income) ratio on Borrower Rate
+
+
+
+*************
+
+
+##  Estimated Yield must vary proportionately with Estimated-Loss
+```{r,  echo  =  FALSE}
+#Taking the variables "EstimatedEffectiveYield" & "EstimatedLoss"
+loss.yield  <-  mydata[,c("EstimatedLoss","EstimatedEffectiveYield")]
+#Getting rid of NA entries to support convergence
+loss.yield  <-  na.omit(loss.yield)
+#Picking entries >0 bebt.rate & Debt/Income ratio
+loss.yield  <-  subset(loss.yield,   (EstimatedEffectiveYield  >  0  
+                               &  EstimatedLoss  >  0))
+estimated.loss  <-  as.numeric(loss.yield$EstimatedLoss)
+est.yield  <-  as.numeric(loss.yield$EstimatedEffectiveYield)
+i5  <-  fivenum(estimated.loss)
+i6  <-  fivenum(est.yield)
+#Checking for Correlation between Expected Loss & Estimated yield
+yield.cor  <-  cor(estimated.loss,  est.yield)
+#Plotting the finding
+p2  <-  ggplot(loss.yield,  aes(y  =  estimated.loss,  x  =  est.yield,
+                             colour   =   estimated.loss))
+p2  <-  p2  +  geom_line(size  =  1)  +  scale_colour_gradient(low  =  "red")
+p2  <-  p2  +  xlab("Estimated yield")  +  ylab("Estimated Loss")
+p2  <-  p2  +  ggtitle("Indeed! \n Estimated Loss increases Estimated Yield") + 
+     theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p2  <-  p2  +  theme(panel.background  =  element_rect(fill  =  "lightblue"))
+p2  <-  p2  +  stat_smooth(method  =  "gam",   fill  =  "blue"
+                ,  colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p2  <-  p2  +  theme(aspect.ratio  =  1)
+p2  <-  p2  +  theme(title  =  brown.bold.italic.text
+                     ,  axis.title  =  brown.bold.italic.text)
+p2  <-  p2  +  annotate("text",  x  =  .2,  y  =  .2,  color  =  "Dark Green"
+               ,  label  =  "Smoothed line (Dark Blue)",  size  =  3)
+p2
+```
+
+
+
+*************
+##  Higher Prosper Score brings down Lender's Yield
+```
+We take the variable 
+
+1.  ProsperScore
+
+2.  LenderYield
+
+To track how lender's yield gets altered by Prosper's score 
+```
+```{r,  echo  =  FALSE}
+#Taking the variables "ProsperScore" & "LenderYield"
+score.yield  <-  mydata[,c("ProsperScore","LenderYield")]
+#Getting rid of NA entries to support convergence
+score.yield  <-  na.omit(score.yield)
+#Picking entries >0 bebt.rate & Debt/Income ratio
+score.yield  <-  subset(score.yield,   (ProsperScore  >  0  
+                               &  LenderYield  >  0))
+prosper  <-  as.numeric(score.yield$ProsperScore)
+yield  <-  as.numeric(score.yield$LenderYield)
+i7  <-  fivenum(prosper)
+i8  <-  fivenum(yield)
+#doing a significance test to come out with the estimates
+prosper.cor  <-  cor(prosper,  yield)
+```
+
+
+There is indeed a strong negative correlation
+of 0.6497835
+between Prosper Score & Lender's yield
+
+
+*************
+##  Amount Delinquent is less for people with high Income?
+```
+Deliquency is state of defaulting on a loan payment by greater than 30 days. This reduces the financial credibility of a borrower
+
+Hence the intuition is that High income individuals 
+should not be facing a hgh deliquency amount
+```
+
+```{r,  echo  =  FALSE}
+#Taking the variables "ProsperScore" & "StatedMonthlyIncome"
+delinquent.income  <-  mydata[,c("AmountDelinquent","StatedMonthlyIncome")]
+#Getting rid of NA entries to support convergence
+delinquent.income  <-  na.omit(delinquent.income)
+#Picking entries >0 bebt.rate & Debt/Income ratio
+delinquent.income  <-  subset(delinquent.income,   (AmountDelinquent  >  0  
+                               &  StatedMonthlyIncome  >  0))
+income  <-  as.numeric(delinquent.income$AmountDelinquent)
+delinquent  <-  as.numeric(delinquent.income$StatedMonthlyIncome)
+#span of the variables
+i9  <-  fivenum(income)#Right skewed
+i10  <-  fivenum(delinquent)#Outliers both ways
+#Transforming the variables
+income  <-  ifelse(income  >  100,  1,  0)
+delinquent  <-  ifelse(delinquent  >  1000,  1,  0)
+#doing a significance test to come out with the estimates
+cor.delinquent  <-  cor(delinquent,  income)#low correlation
+```
+
+
+Surpringly, There is no strong correlation
+between monthly income & Delinquent Amount
+0.001861629
+
+
+*************
+
+##  Do borrower's with high ratings have lower number of Current Delinquencies
+
+```
+High credit ratings go hand in hand with borrowers who have been consistent with their bill payments.
+
+Intuition: Individuals with high ratings should not be having a higher number deliquent accounts.
+```
+
+```{r,  echo  =  FALSE}
+#Taking the variables "ProsperRating..numeric." & "CurrentDelinquencies"
+rating.deliquencies  <-  mydata[,c("ProsperRating..numeric.",  
+                              "CurrentDelinquencies")]
+#Getting rid of NA entries to support convergence
+rating.deliquencies  <-  na.omit(rating.deliquencies)
+#Picking entries >0 Current Deliquencies
+rating.deliquencies  <-  subset(rating.deliquencies,  CurrentDelinquencies  >  0)
+rating  <-  as.numeric(rating.deliquencies$ProsperRating..numeric.)
+delinquencies  <-  as.numeric(rating.deliquencies$CurrentDelinquencies)
+#doing a significance test to come out with the estimates
+ratings.cor  <-  cor.test(rating,  delinquencies,  conf.level  =  .95)#p<<.05 
+#Plotting the finding
+p3  <-  ggplot(rating.deliquencies,  aes(y  =  delinquencies,  x  =  rating,
+                             colour   =   -delinquencies))
+p3  <-  p3  +  geom_line(size  =  1)
+p3  <-  p3  +  xlab("Prosper Rating")  +  ylab("Delinquencies")
+p3  <-  p3  +  xlim(0,  8)   +  ylim(0,  60)  
+p3  <-  p3  +  ggtitle("Rating Vs Number of Deliquencies") + 
+     theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p3  <-  p3  +  theme(panel.background  =  element_rect(fill  =  "light yellow"))
+p3  <-  p3  +  stat_smooth(method  =  "glm",   fill  =  "blue"
+                ,  colour  =  "Dark Green",  size  =  2,  alpha  =  0.25)
+p3  <-  p3  +  theme(aspect.ratio  =  1)
+p3  <-  p3  +  theme(title  =  brown.bold.italic.text
+                     ,  axis.title  =  brown.bold.italic.text)
+p3  <-  p3  +  annotate("text",  x  =  7,  y  =  30,  color  =  "Dark Blue"
+               ,  label  =  "Smoothed line (Dark Green)",  size  =  3)
+p3
+```
+
+
+A significant relationship between Prosper Ratings and number of Deliquent accounts can't be established from the given data!
+
+
+*************
+##  Are multiple recommendations always given to people with higher income?
+```{r,  echo  =  FALSE}
+#Taking the variables "StatedMonthlyIncome" & "Recommendations"
+income.reco  <-  mydata[,c("StatedMonthlyIncome",  "Recommendations")]
+#Getting rid of NA entries to support convergence
+income.reco  <-  na.omit(income.reco)
+#Picking entries > 0 Recommendations
+income.reco  <-  subset(income.reco,  Recommendations  >  0)
+income  <-  as.numeric(income.reco$StatedMonthlyIncome)
+recommendation.type  <-  as.numeric(income.reco$Recommendations)
+#Transforming Reco into a binary variable <2, >=2 because of distribution
+recommendation.type  <- ifelse(recommendation.type  <  2,  "Single",  "Multiple")
+#preparing Box plots for the same
+p4  <-  ggplot(income.reco,  aes(x  =  recommendation.type,  y  =  income,  
+                                 fill  =  recommendation.type))
+p4  <-  p4  +  geom_boxplot(aes(fill  =  factor(recommendation.type)))
+p4  <-  p4  +  xlab("Recommendations")  +  ylab("income band") 
+p4  <-  p4  +  ggtitle("No! \n Prosper with 1 recommendation \n earn more")  +
+       theme(plot.title  =  element_text(lineheight  =  .8,  face  =  "bold"))
+p4  <-  p4  +  theme(panel.background  =  element_rect(fill  =  "light blue"))
+p4  <-  p4  +  theme(aspect.ratio  =  1.0)
+p4  <-  p4  +  geom_jitter(aes(color = recommendation.type))
+p4  <-  p4  +  theme(title = brown.bold.italic.text, axis.title = brown.bold.italic.text)
+p4
+```
+
+
+
+
+*************
+##  Do borrower's with higher Credit scores have lower APR?
+```
+we take the below variables, and study their correlation across all values 
+
+1.  CreditScoreRangeUpper
+
+2.  BorrowerAPR
+```
+
+```{r,  echo  =  FALSE}
+#Taking the variables "CreditScoreRangeUpper" & "BorrowerAPR"
+credit.APR  <-  mydata[,c("CreditScoreRangeUpper","BorrowerAPR")]
+#Getting rid of NA entries to support convergence
+credit.APR  <-  na.omit(credit.APR)
+#Picking entries > 0 Recommendations
+credit.APR  <-  subset(credit.APR,  BorrowerAPR  >  0)
+credit  <-  as.numeric(credit.APR$CreditScoreRangeUpper)
+apr  <-  as.numeric(credit.APR$BorrowerAPR)
+#preparing Box plots for the same
+#doing a significance test to come out with the estimates
+cor.credit  <-  cor(credit,  apr)
+apr.cor  <-  cor.test(credit,  apr,  conf.level = .95)#Highly significant
+```
+
+We have obtained a correlation of 0.4297073
+, which indicates a strong negative correlation.
+
+This brings clarity to the idea that higher credit scores get lower APR for the borrowers 
+
+
+************
+
+```{r,  echo  =  FALSE}
+#detaching the needful packages
+detach(package:ggplot2, unload  =  TRUE)
+```
+
+
