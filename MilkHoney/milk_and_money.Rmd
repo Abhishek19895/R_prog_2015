@@ -1,0 +1,447 @@
+
+---
+title: '**Milk and Money Case Study**'
+author: "Abhishek Singh and Tate Campbell"
+date: "October 7, 2015"
+output:
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: flatly
+    toc: yes
+    toc_depth: 2
+---
+*********
+
+#Executive Summary
+```
+    The Milk & Baker case study, details the evolution of the milk industry in 
+California as well as relevant federal policies, marketing programs and futures 
+markets. Over recent decades there has been massive aggregation in the dairy sector, 
+especially in California, during which a handful of larger dairy farms grew substantially 
+at the expense of smaller dairy farms. This was achieved by the larger farms having 
+higher productivity margins, utilizing technology and exhibiting better control over 
+operational costs. Size supported survivorship for the dairy farm industry
+from 1970 to 2006, as can be learn from the data provided.
+
+    Throughout the study we learn of Gerard, an owner of a large dairy farm in California 
+who has been struggling with rising input costs, fluctuating milk prices and unclear 
+hedging strategies. We gather from the article that he is considering buying 
+put options (insurance from a falling market) and trying to estimate his upside
+from it. Put Options can allow an investor to limit their losses, however there
+are disadvantages, such as:
+
+  1. The potential upside is limited and payoff is relative to the falling market
+  2. They are complex investment tools, so pricing them is relatively hard as they involve 
+  stochastic factors
+  3. Gerard would only benefit if the market is reasonably volatile
+
+    Using the data provided we have computed which commodity futures
+correlate the most with mailbox price. We have also come up with predictions
+for profit from put options for the right combinations of Strike price and 
+underlying asset price. We have also incorporated the costs of put options 
+and transactional costs while coming up with estimates with reasonable assumptions. 
+```
+
+*********
+
+```{r,  echo  =  FALSE,  include  =  FALSE,  cache  =  FALSE}
+#loading the needed libraries
+library(zoo)
+library(car)
+library(MASS)
+library(lmtest)
+library(corrplot)
+library(ggplot2)
+setwd("~/Dropbox/Case_study_docs")
+milk  <-  read.csv("milk_data.csv")
+```
+
+#Analysis for Case Study
+## Predicting Commodity Prices from the mailbox
+
+```
+    Based on dairy pricing data from January 2004 to May 2007 along with corresponding
+mailbox prices, four SLR models were generated using the mailbox price to predict 
+the prices of Class III milk, Class IV milk, butter and nonfat dry milk. 
+```
+```{r,  echo  =  TRUE, comment  =  NA}
+lm_Class.3  <-  lm(Class.III  ~  Mailbox,  data  =  milk)
+lm_Class.4  <-  lm(Class.IV  ~  Mailbox,  data  =  milk)
+lm_Butter  <-  lm(Butter  ~  Mailbox,  data  =  milk)
+lm_NFDM  <-  lm(NFDM  ~  Mailbox,  data  =  milk)
+```
+
+The resulting models are:\newline
+
+$Y_1 = -1.557 + 1.182X$\newline\newline
+
+$Y_2 = 2.6891 + 0.7599X$\newline\newline
+
+$Y_3 = -0.1031 + 1.1227X$\newline\newline
+
+$Y_4 = 0.72693 + 0.02339X$\newline\newline
+
+Where $X$ is the Mailbox price, $Y_1$ is the price of Class III milk, $Y_2$ is the price of Class IV milk, $Y_3$ is the price of butter and $Y_4$ is the price of nonfat dry milk. 
+
+```
+    Using these four models to make predictions for the asset price given a mailbox
+price of X = $12.50, we predict that the asset prices will be $13.22, $12.19, $1.43
+and $1.02 for Class III milk, Class IV milk, butter and nonfat dry milk, 
+respectively, and are displayed in Figs. 2.1.a - 2.1.d below. 
+```
+
+```{r,  echo = FALSE, fig.height = 3.5, comment = NA}
+lm_1  <-  lm(Class.III  ~  Mailbox,  data  =  milk)
+p1  <-  ggplot(milk,  aes(x  =  Mailbox,  y  =  Class.III))  +  geom_point()
+p1  <-  p1  +  labs(title  =  "Fig 2.1.a: Class III vs. Mailbox")  
+p1  <-  p1  +  theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p1  <-  p1  +  stat_smooth(method  =  "glm",   fill  =  "blue", 
+                           colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p1  <-  p1  +  theme(aspect.ratio  =  1) 
+p1  <-  p1  +  theme(panel.background  =  element_rect(fill  =  "lightblue"))
+p2  <-  ggplot(milk,  aes(x  =  Mailbox,  y  =  Class.IV)) + geom_point()
+p2  <-  p2  +  labs(title  =  "Fig 2.1.b: Class IV vs. Mailbox")  
+p2  <-  p2  +  theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p2  <-  p2  +  stat_smooth(method  =  "glm",   fill  =  "blue"
+                           ,  colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p2  <-  p2  +  theme(aspect.ratio  =  1)  +  theme(panel.background
+                                                   =  element_rect(fill  =  "lightblue"))
+p3  <-  ggplot(milk,  aes(x  =  Mailbox, y  =  Butter)) + geom_point()
+p3  <-  p3  +  labs(title  =  "Fig 2.1.c: Butter vs. Mailbox")  
+p3  <-  p3  +  theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p3  <-  p3  +  stat_smooth(method  =  "glm",   fill  =  "blue"
+                           ,  colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p3  <-  p3  +  theme(aspect.ratio  =  1)  +  theme(panel.background  
+                                                   =  element_rect(fill  =  "lightblue"))
+p4  <-  ggplot(milk, aes(x  =  Mailbox, y  =  NFDM))  +  geom_point()
+p4  <-  p4  +  labs(title  =  "Fig 2.1.d: NFDM vs. Mailbox")  
+p4  <-  p4  +  theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p4  <-  p4  +  stat_smooth(method  =  "glm",   fill  =  "blue"
+                           ,  colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p4  <-  p4  +  theme(aspect.ratio  =  1)  +  theme(panel.background 
+                                                   =  element_rect(fill  =  "lightblue"))
+#par(mfrow  =  c(2,  2))
+p1
+p2
+p3
+p4
+```
+
+
+
+*********
+## Correlations between Commodity Prices & Mailbox 
+```
+    Based on Figs. 2.1.a - 2.1.d, it appears that Class III milk has the strongest 
+relationship with Mailbox price and that nonfat dry milk has the weakest relationship 
+with Mailbox price. The correlation matrix is computed in order to precisely 
+determine which commodity is correlated strongest with the Mailbox price (Table 2.2). 
+```
+
+\newpage
+
+**Table 2.2: Correlation Matrix for Dairy Commodity Prices**
+```{r,  echo  =  FALSE,  fig.height  =  2.5,  fig.width  =  3.5, comment  =  NA}
+par(mfrow  =  c(1,  1))
+cor_matrix  <-  cor(milk[2  :  6])
+cor_matrix
+```
+
+```
+For a more visual representation we have a correlation plot (Fig. 2.2.a). 
+```
+
+**Fig. 2.2.a: Correlation Plot for Dairy Commodity Prices**\newline
+
+```{r, fig.height  =  2.5, fig.width  =  3.5, comment  =  NA, echo  =  FALSE}
+corrplot(cor_matrix,  method  =  "pie", addCoefasPercent  =  TRUE)
+```
+\newline Indeed Class 3 milk is correlated strongest with Mailbox price
+
+
+```
+Checking for the distribution of Residuals of Class 3 futures & Mailbox
+```
+
+```{r,  echo  =  TRUE, comment  =  NA}
+residualPlot(lm_Class.3,  main  =  "Residual Plot for Class 3 Futures",  
+             col.main  =  'dark blue')
+```
+
+```
+The residuals of the above plot don't seem to have flat line.
+We have discussed the possibilities in the Appendix section 3.1
+```
+
+*********
+## Put Options & Commodity Prices
+```
+    We perform a one tailed test as we only want the futures's prices to decrease. 
+Hence we will have a single threshold point, below which we 
+always want the futures's price to be. Hence we take the upper bound 
+at the 95 percentile mark as the Strike Price,
+which shall produce profit 95% time for the Put Option Buyer.
+```
+```{r,  echo  =  FALSE,  comment  =  NA}
+#Setting the plot size
+cat("We choose the Class 3 Future as it is most closely related to the Mailbox price. \n")
+#Using the above equation
+lm_1  <-  lm(Class.III  ~  Mailbox,  data  =  milk)
+#Making prediction for the 5% percentile point for  Class 3 Milk from mailbox
+CI  <-  predict(lm_1,  data.frame(Mailbox  =  12.5),  level  =  .90
+                ,  interval  =  "prediction")
+Strike_price  <-  CI[3]
+sp <- round(Strike_price,  2) 
+cat(paste("Strike price should be:", "$", sp))
+```
+```
+However since the strike prices of Class III milk futures come in increments of $0.25, for example 
+$11.50, $11.75, $12.00, we choose the approximate strike price for this contract. 
+
+So choosing a strike price of $14.25 based on the above computation and 
+visualizing the pay-off from the put options for Gerard at a strike Price
+of $14.25. Figure 2.3 shows how the payout of a put option varies with
+future price. 
+```
+```{r,  echo  =  FALSE, comment  =  NA}
+Class3.fut  <-  seq(0,  25,  .25)  ;  put_payoff  <-  NULL  ;  Strike  <-  14.25
+for  (i  in  1  :  length(Class3.fut))  {
+  if  (Class3.fut[i]  <  Strike)  {
+    put_payoff[i]  <-  abs(Class3.fut[i]  -  Strike)
+  }  else  {
+    put_payoff[i]  <-  0
+  }  
+}
+par(col.lab  =  "brown")
+par(fg  =  'light blue')
+plot(Class3.fut,  put_payoff,  xlab  =  'Prices of Futures',  font  =  4
+     ,  col.main  =  "Dark Blue",  ylab  =  'Put Payoff',  col  =  'dark green'
+     ,  lwd  =  5,  lty  =  3,  type  =  'l'
+     ,  main  =  'Fig. 2.3: Payoff from Put option (Strike = $14.25)')
+abline(h  =  0,  col  =  "red")
+```
+
+*********
+
+
+## Point estimate for the value of Put Option
+```
+    Making predictions for the possible price for Class 3 milk, based on the previous 
+prediction model. This is a one tail test as we want the futures's prices 
+to move in only the decreasing direction. Hence we will only have a threshold
+point, below which we always want the futures's price to be.
+Hence we take the upper bound at the 95 percentile mark as the strike price,
+which shall produce profit 95% time for the Put Option buyer.
+```
+```{r,  echo  =  TRUE, comment  =  NA}
+CI.2  <-  predict(lm_1,  data.frame(Mailbox  =  11.5),  level  =  .90
+                ,  interval  =  "prediction")
+Strike_price_2 <-  CI.2[1]
+cat("The value of the put option would be:",  round(Strike_price_2,  2))
+```
+```
+Gerard couldn't be sure that his net price would exceed $12.50 with 95% confidence.
+This is because the point estimate of this put option at 95% is 11.01.
+
+Moreover, Gerard could be 95% confident that his put option would have a price
+of $11.01 or more. In order to include the net price of $12.50, the confidence 
+level would need to be significantly lower, specifically:
+```
+```{r,  echo  =  TRUE,  comment  =  NA}
+perc  <-  100  *  (1 - pnorm(12.5,  mean  =  12.04,  sd  =  sd(milk$Class.III)))
+cat("We could be:", perc,"% sure of strike price crossing 12.5")
+```
+
+*********
+
+## Option Premiums & Trading Fees Impact Profits.
+
+```
+    The trasactional costs and option premiums are other costs incurred by the buyer of
+a put option. While the put premium is also the income of the put option seller,
+trasaction costs is simply lost in liquidity cost, ECN costs & to the exchange 
+depending and is a function of the volume of the instrument & its price stability.
+
+    Trasactional costs and put premiums will bring down Gerard's gain as they add to his
+costs in this financial cash flow. Here is how his gain would look after 
+accounting for the costs.
+```
+
+```{r,  echo  =  TRUE,  comment  =  NA}
+Class3.fut  <-  seq(0,  25,  .25)  ;  put_payoff1  <-  NULL  
+Strike  <-  14.25  ;  Option_cost  =  .5  ;  Trading_cost  =  .1
+for  (i  in  1  :  length(Class3.fut))  {
+  if  (Class3.fut[i]  <  Strike)  {
+    put_payoff1[i]  <-  abs(Class3.fut[i]  -  Strike)  -  Option_cost  -  Trading_cost
+  }  else  {
+    put_payoff1[i]  <-  -  Option_cost  -  Trading_cost
+  }  
+}
+par(col.lab  =  "brown")
+par(fg  =  'light blue')
+plot(Class3.fut,  put_payoff1,  xlab  =  'Prices of Futures',  font  =  4
+     ,  col.main  =  "Dark Blue",  ylab  =  'Put Payoff adjusting costs'
+     ,  col  =  'dark green',  lwd  =  5,  lty  =  3,  type  =  'l'
+     ,  main  =  'Payoff from Put option (Strike = 14.25)')
+abline(h  =  0,  col  =  "red")
+```
+
+What would be the break even point for Gerard, to make some profits:
+```{r,  echo   =  TRUE,  comment  =  NA}
+break_even  <-  Strike  -  Option_cost  -  Trading_cost
+break_even
+```
+
+```
+The future's price needs to be below $13.65 for Gerard to make a profit 
+on this put option.
+```
+
+*********
+#Appendix
+
+## An Alternative prediction methodology for Class 3 products
+
+```
+    Looking more closely at the scatterplot and residual plot of
+the Class III price vs. mailbox price model, there seem to some deviations 
+from the Normal distribution. Lets explore the curvilinear fit of the response and
+dependent variable by including 2nd and 3rd degree terms of the predictor to the model.
+```
+```{r,  echo  =  FALSE, comment  =  NA}
+# this is a nice little bit of code taken from "R in Action"
+# by Robert Kabacoff
+residplot  <-  function(fit,  nbreaks  =  10)  {
+  z  <-  rstudent(fit)
+  hist(z,  breaks  =  nbreaks,  freq  =  FALSE,  col  =  "light blue",
+       xlab  =  "Studentized Residual",  ylim  =  c(0,  .7),
+       main  =  "Distribution of Errors")
+  rug(jitter(z),  col  =  "brown")
+  curve(dnorm(x, mean  =  mean(z), sd  =  sd(z)),
+        add  =  TRUE,  col  =  "blue",  lwd  =  2)
+  lines(density(z)$x, density(z)$y,
+        col  =   "red",  lwd  =  2,  lty  =  2)
+  legend("topright",
+         legend  =  c( "Normal Curve",  "Kernel Density Curve"),
+         lty  =  1  :  2,  col  =  c("blue",  "red"),  cex  =  .7)
+}
+
+q1 <- ggplot(milk, aes(x=Mailbox, y=Class.III)) + geom_point()
+q1 <- q1 + stat_smooth(method="lm", se=TRUE, fill=NA, formula=y ~ poly(x, 2, raw=TRUE), color = "blue") 
+q1 <- q1 + stat_smooth(method="lm", se=TRUE, fill=NA, formula=y ~ poly(x, 3, raw=TRUE), colour="red") +
+  stat_smooth(method  =  "lm", colour  =  "green", se = FALSE) + 
+  geom_text(data = NULL, x = 13.5, y = 16, label = "1st Order fit", color = "green") + 
+  geom_text(data = NULL, x = 15, y = 18, label = "2nd Order fit", color = "blue") + 
+  geom_text(data = NULL, x = 16, y = 15.4, label = "3rd Order fit", color = "red") + 
+  labs(title = "Fig. 3.1: Higher Order fits for Class III price vs. Mailbox price") +
+  labs(x = "Mailbox price ($)") + labs(y = "Class III milk price ($)")
+q1
+
+tab <- cbind.data.frame(c(1, 2, 3), c(0.927, 0.951, 0.957))
+names(tab) <- c("Order of fit", "R-squared")
+tab
+```
+
+
+```{r,  echo  =  TRUE,  comment  =  NA}
+#analyzing the relation for the same (Adding a Degree 3 term)
+boxTidwell(Class.III  ~  Mailbox,  data  =  milk)
+lm_3  <-  lm(Class.III  ~  Mailbox  +  I(Mailbox  ^  2)  +  I(Mailbox  ^  3)
+                    ,  data  =  milk)
+summary(lm_3)
+par(mfrow  =  c(1,  2))
+residualPlots(lm_3)
+bptest(lm_3)
+par(mfrow  =  c(1,  1))
+```
+
+```
+1) Adjusted R Square & R Square have increased 
+2) Value of Residuals plots look far consistent with the desired
+charachterstics
+3) Breush Pagan Test also confirms Homoskedasticity
+However, none of the co-efficients seem to be strongly significant.
+```
+
+*********
+## How much money money you will make on Put Options
+```
+Money made on Put Options not considering for premium cost & Transaction costs for the Put Buyer
+```
+```{r,  echo  =  TRUE, comment  =  NA}
+put_price_calulator  <-  function(Strike  =  14.2)  {
+  Class3.fut  <-  seq(0,  22,  .01)  ;  put_payoff  <-  NULL
+  for  (i  in  1  :  length(Class3.fut))  {
+    if  (Class3.fut[i]  <  Strike)  {
+      put_payoff[i]  <-  abs(Class3.fut[i]  -  Strike)
+    }  else  {
+      put_payoff[i]  <-  0
+    }  
+  }
+par(col.lab  =  "brown")
+par(fg  =  'light blue')
+plot(Class3.fut,  put_payoff,  xlab  =  'Prices of Futures',  font  =  4
+     ,  col.main  =  "Dark Blue",  ylab  =  'Put Payoff',  col  =  'dark green'
+     ,  lwd  =  5,  lty  =  3,  type  =  'l'
+     ,  main  =  'Payoff from Put option (Strike = $14.25)')
+abline(h  =  0,  col  =  "red")
+}
+
+```
+
+```{r,  echo  =  TRUE,  comment  =  NA}
+#Calling the function
+cat("Enter a strke price for computing Put_payoff in the function below : \n")
+put_price_calulator()
+```
+
+```
+Money made on Put Options considering premium cost & Transaction costs 
+for the put Buyer
+```
+```{r,  echo  =  TRUE,  comment  =  NA}
+put_price_calulator1  <-  function(Strike  =  14.2,  option.price  =  .5,  trade  =  .1)  {
+  par(mar  =  c(5,  5,  5,  5))
+  Class3.fut  <-  seq(0,  22,  .01)  ;  put_payoff1  <-  NULL
+  for  (i  in  1  :  length(Class3.fut))  {
+    if  (Class3.fut[i]  <  Strike)  {
+      put_payoff1[i]  <-  abs(Class3.fut[i]  -  Strike)  -  option.price  -  trade
+    }  else  {
+      put_payoff1[i]  <-  -  option.price  -  trade
+    }  
+  }
+par(col.lab  =  "brown")
+par(fg  =  'light blue')
+plot(Class3.fut,  put_payoff1,  xlab  =  'Prices of Futures',  font  =  4
+     ,  col.main  =  "Dark Blue",  ylab  =  'Put Payoff',  col  =  'dark green'
+     ,  lwd  =  5,  lty  =  3,  type  =  'l'
+     ,  main  =  'Payoff from Put option (Strike = 14.25)')
+abline(h  =  0,  col  =  "red")
+}
+#Calling the function
+cat("Enter a strke price for computing Put_payoff in the function below : \n")
+put_price_calulator1()
+```
+
+*********
+```{r  echo  =  FALSE, warning = FALSE, comment=NA}
+detach("package:car", unload  =  TRUE)
+detach("package:MASS", unload  =  TRUE)
+detach("package:lmtest", unload  =  TRUE)
+detach("package:corrplot", unload  =  TRUE)
+detach("package:ggplot2", unload  =  TRUE)
+```
+
+
+
+
+
+
+

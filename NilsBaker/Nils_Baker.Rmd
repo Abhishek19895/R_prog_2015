@@ -1,0 +1,307 @@
+
+---
+title: '**Nills Baker Case Study**'
+author: "Abhishek Singh and Tate Campbell"
+date: "October 16, 2015"
+output:
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    number_sections: yes
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: flatly
+---
+*********
+
+1. Executive Summary
+```
+    In this case study we learn about eager & ambitious Banker Nils Baker who is a part of the Personal Account Services (PAS) group of his bank. On his flight to Lisbon, Nil has an interesting hypothesis in mind, that Presence of a physical bank branch increases checking account activity in the vicinity. Well it does seem logical that having an office makes it convenient for all existing and potential customers to avail plethora of banking services with ease. However, it is legitimate to base any judgment on solid number crunching rather than pure intuition, to make this notion acceptable. We have detailed 2 approaches of going about this.
+    In our First approach, we have tested the relationship between Number of Households with Checking account (Response) to the Number of households and Binary Variable Bank_presence (Inside/Outside) as 2 predictors. We have regressed the various possibilities and reached a conclusion that Bank_presence doesn't strongly influence the number of people with checkings account.
+    In our Second approach, we have chosen response variable to be the ratio between Number of households with checking accounts to the number of total household. we have analyzed the relationship of the ratio with the predictor (Inside/Outside) and have quantified the relationship using Statistical tests. The pooled independent T-test has validated the result that we obtained from the Regression exersize.
+    Additionally, we have applied K-Nearest Neighbors (KNN) technique to cluster data points to mine tangential insights from this dataset. This exercise could answers 2 questions:
+1)	If a percentage of people with checkings account in a MSA determine if a physical branch is present?
+2)	Also, number of MSA's that potentially deserve a Bank branch? 
+```
+
+\pagebreak
+
+2. Analysis for the case study
+2.B. Exploring the dataset
+```{r,  echo  =  FALSE,  include  =  FALSE,  cache  =  FALSE}
+#loading the needed libraries
+library(zoo)
+library(car)
+library(MASS)
+library(lmtest)
+library(corrplot)
+library(ggplot2)
+if (!require("class")) install.packages("class",  dependencies  =  TRUE) 
+if (!require("gmodels")) install.packages("gmodels",  dependencies  =  TRUE) 
+library(class)
+library(gmodels)
+setwd("~/Dropbox/Case_study_docs")
+nils_baker  <-  read.csv("Nils_Baker.csv",  stringsAsFactors  =  TRUE)
+nils_baker  <-  nils_baker[-c(121,  122),  ]
+```
+
+We filter out the row-number column, and create a binary numeric variable for 
+Inside & Outside the branch values.
+Giving a value of 1 to "Inside"" & 0 to "Outside""
+We also convert all factors into integers, to enable modelling on the 
+dataset
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+#Using only the relevent columns
+nils_baker  <-  nils_baker[,  2  :  4]
+names(nils_baker)  <-  c("TotaL_households",  "Households_checking",  "In_Out")
+nils_baker$Inside_Outside  <-  ifelse(nils_baker$In_Out  ==  "Outside",  0,  1)
+nils_baker  <-  nils_baker[  ,  -3]
+nils_baker$TotaL_households  <-  as.numeric(sub(",",  "",  nils_baker$TotaL_households))
+nils_baker$TotaL_households[1  :  2]  <-  c(1772960, 1345209)
+nils_baker$Households_checking  <-  as.numeric(sub(",",  "",  nils_baker$Households_checking))
+```
+
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+cor_matrix  <-  cor(nils_baker)
+par(mfrow  =  c(1,  1))
+```
+
+```
+Before going ahead with modelling exerisize lets check the plot between
+the Number of Checkings account & the number of Households
+```
+
+```{r,  echo  =  FALSE, fig.height  =  3.5, comment  =  NA}
+p1  <-  ggplot(nils_baker,  aes(x  =  TotaL_households,  y  =  Households_checking))  +  geom_point()
+p1  <-  p1  +  labs(title  =  "Fig 2.1.a: Total_households vs. Households_checking")
+p1  <-  p1  +  labs(x  =  "Total number of Households",  y  =  "Total number of Checkings account")
+p1  <-  p1  +  theme(plot.title  =  element_text(lineheight  =  1.8,  face  =  "bold"))
+p1  <-  p1  +  stat_smooth(method  =  "glm",   fill  =  "blue", 
+                           colour  =  "darkblue",  size  =  2,  alpha  =  0.25)
+p1  <-  p1  +  theme(aspect.ratio  =  1) 
+p1  <-  p1  +  theme(panel.background  =  element_rect(fill  =  "lightblue"))
+p1
+```
+\pagebreak
+
+2.B. Regressing total number of Checkings (Response) with the independent variables Total Number of Households (X1) & Branch_Presence (X2)
+```
+Model iteration 1:, where we regress "Households_checking" (Response)
+on "TotaL_households" & "Inside_Outside" (Predictors). Checking the 
+modelling charachterstics, residual plots & residual charachterstics
+through statistical tests.
+```
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+nb_model  <-  lm(Households_checking  ~  Inside_Outside  +  TotaL_households
+                 ,  data  =  nils_baker)
+#test for Model fit
+cat("We get an R Square of:",summary(nb_model)$r.squared,"\n")
+cat("We get an Adjusted R Square of:",summary(nb_model)$adj.r.squared,"\n")
+cat("We get an AIC of:",AIC(nb_model),"& BIC of:",BIC(nb_model))
+cat("We get a good score for R^2 & Adjusted R^2, but AIC, BIC & deviance values 
+    are not optimal \n")
+cat("Coefficients remain significant \n")
+cat("ResidualPlot shows an un-optimal fit \n")
+cat("Marginal plot shows lack of concordance between actual & fitted values \n")
+```
+Since the first model doesn't seem to provide a good fit, lets iterate the model
+to achieve better fit.
+
+
+```
+Now number of Total Households definitely, influence the presence of a bank branch 
+in the vicinity. This is because if there are too many customers, then it would
+make financial sense for the bank to increase their visibility in that particular vicinity. We are sure that Nils's bank might have capitalized on the same.
+So lets include the interaction of (Number of Total Household) & Presence of Bank
+branch (Inside/Outside)
+Iteration no : 2
+```
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+nb_model1  <-  lm(Households_checking  ~  Inside_Outside  +  TotaL_households  +  TotaL_households:Inside_Outside,  data  =  nils_baker)
+#test for Model fit
+cat("We get an R Square of:",summary(nb_model1)$r.squared,"\n")
+cat("We get an Adjusted R Square of:",summary(nb_model1)$adj.r.squared,"\n")
+cat("We get an AIC of:",AIC(nb_model1),"& BIC of:",BIC(nb_model1))
+cat("AIC & BIC have decreased with better f -scores for the overall model \n")
+cat("ResidualPlots have gotten better \n")
+cat("Marginal plot shows reasonable concordance between actual & fitted values \n")
+cat("The Coefficient of Bank_presence is not significant at all significant. Hence we fail o reject the null hypothesis that the Bank Presence is of no significance \n")
+cat("Hence Bank_presence can't be deemed to be an influential predictor of Number of checkings accounts")
+```
+
+```
+Allthough the R Square & Adjusted R Square have improved, with better AIC & BIC
+we do not get Bank_presence as a significant predictor
+```
+
+\pagebreak
+
+2.C. Does a bank branch influence the percentage of customers with checking's account
+```
+We introduce a new column in the dataset "Ratio_accounts", which is the ratio
+of number of checking_accounts to number of number of Total households.
+After obtaining the "Ratio_accounts", We do a pooled Independent t-test.
+This shall help us determine if the there is a significant difference,  
+
+Methodology :
+The most straightforward method to answer whether  there is significant difference in percentage of people with checkings account is to simply compare the two sample means.  A t-test is performed using the null hypothesis that the two sample means are equal, and the alternate hypothesis that they are unequal.  After sub setting the data into two groups, we have 67 areas without the presence of a physical bank and 53 areas with a physical branch.  From these two group we calculate the average percentage of households with a checking account to be 1.24% and 1.65% for areas with no physical branch and areas with a physical branch, respectively.  To see if these values are statistically different we perform a t-test by first calculating spooled to account for the groups of unequal size.  This yields the test statistic  which corresponds to a p-value of 0.424.  So we cannot reject the null hypothesis in this case, in other words, there is no evidence that the presence of a physical bank leads to an increase in demand for checking accounts.  
+```
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+cat("Null Hypothesis (Ho): The 2 populations of with a bank branch & without a Bank branch do have a significantly different percentage of people with checkings account\n
+Alternative Hypothesis (Ha): The 2 populations have significantly different percentage of peole with checkings account \n")
+nils_baker$Ratio_accounts <- nils_baker$Households_checking/nils_baker$TotaL_households
+nils_inside <- subset(nils_baker,  Inside_Outside  ==  1)
+nils_outside <- subset(nils_baker,  Inside_Outside  ==  0)
+means  <-  c(mean(nils_outside$Ratio_accounts),  mean(nils_inside$Ratio_accounts))
+std_devs  <-  c(sd(nils_outside$Ratio_accounts),  sd(nils_inside$Ratio_accounts))
+N_s  <-  c(length(nils_outside$Ratio_accounts),  length(nils_inside$Ratio_accounts))
+s_pooled  <-  sqrt((std_devs[1]/N_s[1])  +  (std_devs[2]/N_s[2]))
+t_stat  <-  (means[2]  -  means[1])  /  s_pooled
+df  <-  sum(N_s)  -  2
+p_value  <-  pt(t_stat,  df)
+cat(" We get a p-value of :",p_value,"Hence we fail to reject the Null hypothesis
+    that the 2 populations do not have a significanty different percentage of people with checkings_account \n")
+#p_value indicates that we cannot reject the null hypothesis
+```
+
+```
+So we realize that there is no significant relationship between presence of 
+a physical bank branch and the percentage of people using checkings account. This is a validation of our earlier regression exersize. Hence we could be double sure that having a bank branch in the neighbourhood doens't siginificantly influence more
+people to have checkings account with the specific bank. 
+```
+
+\pagebreak
+2.D. Conclusions from the above 2 methods
+
+```
+The above 2 methods have helped us confirm that the presence of a bank branch did not significantly increase the demand for checking accounts.  But at the same time, we are also aware of the shortcoming of either approaches.  The Pooled t-test approach suffers from the problem, that we subset our data before computing the means, therefore we decrease our sample size by cutting it roughly in half. Hence this limits the scope of this approach and reduced its accuracy.  
+
+Allthough, Multiple linear regression (MLR), doesn't have the same problem. But it suffers from the problem that residuals of the final model are not obeying any of the assumptions of an Ideal OLS estimator. We have discussed residual behavior in our appendix section. 
+```
+
+2.E. Next steps from here
+
+```
+The data available has invalidated Nils's intuition, that bank presence could significantly increase the number of people with checkings account. A variety of reasons could be possible for the same, such as
+1) We had too little data to base our conclusion on (120 MSA), may be the 
+data for the remaining MSA is significantly different on the whole, 
+but chances are this are not really bright as Anna didn't pull out a biased sample.
+On the whole USA has 381 MSA's. We have based our analysis on only 120 of them,
+But it is unlikely that the other 261 MSA's have significantly contrasting percentages of people with checking's account to siginifantly alter
+the overall result. Allthough Information on other MSA is a viable stream of information, but we are not hopeful of a startling discovery through it.
+2) My second suspect would be the rise of Online & Mobile banking as they are easier, faster & convenient channels for offering banking services to people. It is very tempting to think about the benefits customers have realized from digital banking. We are much in favor of mining data related to rise of Checkings account 
+at MSA level via Internet & mobile channels. 
+One limitation of this case study is that we don't have any reference point for time as there is no date to any of the conversations in the case study. But if its not too old, they guaging the contribution of mobile & digital channels for banking needs would make total sense here. Hence this would be an interesting deep dive 
+at this point.
+```
+
+3. Appendix
+3.A. Plots related to analysis
+```{r,  echo  =  FALSE,  comment  =  NA}
+pairs(nils_baker[,  1  :  3],  main  =  "3.1.a plots between all variables of the dataset")
+marginalModelPlots(nb_model1,  main  =  "3.1.b Marginal plots for the final model")
+residualPlots(nb_model1,  main  =  "3.1.c Residual plots for final model")
+corrplot(cor_matrix,  method  =  "pie")
+```
+
+
+3.B. Residual Analysis for the Final model 
+
+```
+We do tests of the Residuals of our final model, and we realized that our residuals
+aren't fulling the necessary conditions required for Normality. The residuals are:
+1) Failing the condition of Normality at 5% significance
+2) Failing the condition of Homoskedasticity at 5% significance
+3) Does have some Outliers, that are significant at 5% level.
+The plots for the same are as such:
+```
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+#Test for residuals
+par(mar  =  c(5,  5,  5,  5))
+#Doing the Shapiro test for checking normality of the residuals 
+cat("Ho: Residuals are normally distributed & \n
+    Ha: Residuals are not normally distributed \n")
+p.norm.shapiro  <-  shapiro.test(nb_model1$residuals)[2]
+if (p.norm.shapiro  >  .05)  {
+  cat("We fail to reject Ho and the residuals are normally distributed \n")
+}  else  {
+  cat("We reject Ho and the residuals are not normally distributed  \n")
+}
+
+#Doing the Breush Pagan test for checking Homoskedasticity of the residuals 
+cat("Ho: Residuals are not Heteroskedastic & \n
+    Ha: Residuals are Heteroskedastic \n")
+bptest(nb_model1)
+p.bp  <-  as.numeric(unlist(bptest(nb_model1))[4])
+if (p.bp  >  .05)  {
+  cat("We fail to reject Ho and the residuals are Heteroskedastic \n")
+}  else  {
+  cat("We reject Ho and the residuals are not Heteroskedastic  \n")
+}
+
+#testing for Outlier detection
+cat("Ho: Residuals do not have significant outliers & \n
+    Ha: Residuals have significant Outliers \n")
+outlierTest(nb_model1)
+cat("All Outliers are significant at 5 % sigificance level \n")
+```
+
+3.C. Applying K Nearest Neighbour to predict Opening of a Bank Branch
+
+```
+An alternatve approach to understand the Dataset. Predicting whether we could predict 
+a branch is in a neighbourhood, based on the the proportion of customers with a 
+checking account.
+Methodology & Result:
+As an alternative method we take a machine learning approach to predicting whether or not a given area has a physical branch based on the number of total households and number of households with checking accounts.  This was implemented using a k-Nearest Neighbors (k-NN) classification algorithm by splitting the data into training and testing sets in an 80/20 ratio.  The resulting algorithm certainly seems to be performing better than random, however due to the small sample size it is difficult to determine.  To address this, we run the algorithm 10 times, each time noting the percentage of inside footprints (areas with physical branches) that were correctly classified.  We then perform a t-test, testing the null hypothesis that this percentage is equal to 0.5.  This test gives a test statistic of  which corresponds to a p-value of 0.016.  So there is very strong evidence to suggest that this k-NN classifier is performing well, and equivalently that the number of totals households and households with checking account is a predictor of a physical bank branch. This result does testify that there is a relationship between a physical branch and percentage of people with checking account. 
+```
+
+```{r,  echo  =  FALSE,  comment  =  NA}
+#Splitting the dataset into 2 parts Training & test based on probabilities
+#Algorithm that we run 10 times from START to END to get these array of values
+##START
+#choose which rows of data will be in the test set vs. training set in a 80/20 ratio
+ind  <-  sample(2,  nrow(nils_baker),  replace  =  TRUE,  prob  =  c(0.8,  0.2))
+col_set  <-  1  :  2
+nils_training  <-  nils_baker[ind  ==  1,  col_set]
+nils_test <- nils_baker[ind  ==  2,  col_set]
+nils_training_labels  <-  nils_baker[ind  ==  1,  3]
+nils_test_labels  <-  nils_baker[ind  ==  2,  3]
+#this predicts a classification for every row in the test set
+nils_pred  <-  knn(train  =  nils_training,  test  =  nils_test
+                   ,  cl  =  nils_training_labels,  k  =  2)
+#displays the relative classifications from the data and the predictions 
+CrossTable(x  =  nils_test_labels,  y  =  nils_pred,  prop.chisq  =  FALSE)
+##END
+#test whether assignment percentage is statistically different from 0.5
+cat("Null hypothesis (Ho): Proportion of predicted Inside points is no better than .5\n
+Alternate Hypothesis (Ha): Proportion of predicted Inside points is better than .5 \n")
+cat(" Here we are doing a 1 tail test to validate this, as we want the proportion to move only
+    in upwards direction (>.5)")
+inside_assign_pcts  <-  c(0.889, 0.625, 0.875, 0.556, 0.429, 0.462, 0.75, 0.462, 0.6, 0.684)
+t_assign  <-  (mean(inside_assign_pcts) -  0.5)/(sd(inside_assign_pcts)/sqrt(length(inside_assign_pcts)))
+df_assign  <-  length(inside_assign_pcts) - 1
+p_value_knn  <-  1  -  pt(t_assign,  df_assign)
+cat("So since p-value being small :",p_value_knn,"at 5% significance we reject the
+    Null Hypothesis that Proportion of predicted Inside points is no better than .5 \n"  )
+cat("Thus KNN has really helped us in predicting the presence of a bank branch with 
+    reasonable accuracy \n")
+```
+
+\pagebreak
+```{r  echo  =  FALSE,  warning = FALSE,  comment  =  NA}
+detach("package:car",  unload  =  TRUE)
+detach("package:MASS",  unload  =  TRUE)
+detach("package:lmtest",  unload  =  TRUE)
+detach("package:corrplot",  unload  =  TRUE)
+detach("package:ggplot2",  unload  =  TRUE)
+detach("package:class",  unload  =  TRUE)
+detach("package:gmodels",  unload  =  TRUE)
+```
